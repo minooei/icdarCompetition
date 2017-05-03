@@ -71,6 +71,9 @@ def filter_matches(kp1, kp2, matches, ratio = 0.75):
     return p1, p2, list(kp_pairs)
 
 def explore_match(win, img1, img2, kp_pairs, status = None, H = None):
+    img1= cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    img2= cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+
     h1, w1 = img1.shape[:2]
     h2, w2 = img2.shape[:2]
     vis = np.zeros((max(h1, h2), w1+w2), np.uint8)

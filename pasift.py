@@ -22,6 +22,8 @@ USAGE
 # Python 2/3 compatibility
 from __future__ import print_function
 
+from random import randint
+
 import numpy as np
 import cv2
 import json
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     feature_name = opts.get('--feature', 'brisk-flann')
     fn = []
     # try:
-        # fn1 = args
+    # fn1 = args
     # except:
     fn1 = 'pic/frame0.jpg'
     fn.append('pic/frame278.jpg')
@@ -151,7 +153,7 @@ if __name__ == '__main__':
                       corners['object_coord_in_ref_frame']['bottom_right']['y']]])
     print(rect)
     # img1 = four_point_transform(img1, rect)
-    cv2.imwrite('img.jpg',img1)
+    cv2.imwrite('img.jpg', img1)
     if img1 is None:
         print('Failed to load fn1:', fn1)
         sys.exit(1)
@@ -177,40 +179,52 @@ if __name__ == '__main__':
     print('img1 - %d features, img2 - %d features' % (len(kp1), len(kp)))
 
 
-    def match_and_draw(win):
-        c=1
-        for kp2, desc2, img2 in zip(kp, desc, img):
-            with Timer('matching'):
-                raw_matches = matcher.knnMatch(desc1, trainDescriptors=desc2, k=2)  # 2
-            p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
-            if len(p1) >= 4:
-                H, status = cv2.findHomography(p2, p1, cv2.RANSAC, 5.0)
-                print('%d / %d  inliers/matched' % (np.sum(status), len(status)))
-                # do not draw outliers (there will be a lot of them)
-                kp_pairs = [kpp for kpp, flag in zip(kp_pairs, status) if flag]
-            else:
-                H, status = None, None
-                print('%d matches found, not enough for homography estimation' % len(p1))
-            heightA, widthA = img1.shape[:2]
-            heightB, widthB = img2.shape[:2]
+    def match_and_draw(kp2, desc2, img2,c):
+        # with Timer('matching'):
+        print('matching ')
+        raw_matches = matcher.knnMatch(desc1, trainDescriptors=desc2, k=2)  # 2
+        p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
+        if len(p1) >= 4:
+            H, status = cv2.findHomography(p2, p1, cv2.RANSAC, 5.0)
+            print('%d / %d  inliers/matched' % (np.sum(status), len(status)))
+            # do not draw outliers (there will be a lot of them)
+            kp_pairs = [kpp for kpp, flag in zip(kp_pairs, status) if flag]
+        else:
+            H, status = None, None
+            print('%d matches found, not enough for homography estimation' % len(p1))
+        heightB, widthB = img2.shape[:2]
 
-            maxWidth = max(int(widthA), int(widthB))
-            maxHeight = max(int(heightA), int(heightB))
-
-            im_dst = cv2.warpPerspective(img2, H, (maxWidth, maxHeight))
-            # cv2.imshow('win', im_dst)
-            cv2.imwrite('test'+str(c)+'.jpg',im_dst)
-            c=c+1
-            # idx = (im_dst != 0)
-            # try:
-            #     img1[idx] = im_dst[idx]
-            # except:
-            #     pass
-            # cv2.imshow('win', img1)
-            # cv2.imwrite('/home/mohammad/PycharmProjects/asift/test1.jpg', img1)
-            vis = explore_match('win', img1, img2, kp_pairs, None, H)
+        im_dst = cv2.warpPerspective(img2, H, (widthB, heightB))
+        cv2.imwrite('test' + str(c) + '.jpg', im_dst)
+        print('finish')
+        return 'finish'
 
 
-    match_and_draw('affine find_obj')
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+    def match_wrap(args):
+        # args = list(args)
+        match_and_draw(*args)
+
+
+    def calb():
+        print('pass')
+        pass
+
+
+    # pool = multiprocessing.Pool()
+    c = 0
+    for kp2, desc2, img2 in zip(kp, desc, img):
+        c = c + 1
+        my_list = [kp1.copy(), kp2, desc1.copy(), desc2, img2, c]
+        # p = multiprocessing.Process(target=match_and_draw, args=(kp1.copy(), kp2, desc1.copy(), desc2, img2, c))
+        # p.start()
+        # p.join()
+        # results = pool.apply_async(match_and_draw, args=(kp1.copy(), kp2, desc1.copy(), desc2, img2, c),callback=calb)
+        # results = pool.apply_async(match_and_draw, my_list)
+        # results.wait()
+    # nums = [1, 2, 3, 4, 5, 6, 7, 8]
+    results = [pool.apply_async(match_and_draw, args=(kp2, desc2, img2, c)) for kp2, desc2, img2, c in
+               zip(kp, desc, img, range(1, 111))]
+    output = [p.get() for p in results]
+    # print(output)
+    # cv2.waitKey()
+    # cv2.destroyAllWindows()
