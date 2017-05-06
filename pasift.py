@@ -27,8 +27,6 @@ from random import randint
 import numpy as np
 import cv2
 import json
-from joblib import Parallel, delayed
-import multiprocessing
 
 # built-in modules
 import itertools as it
@@ -37,7 +35,6 @@ from multiprocessing.pool import ThreadPool
 # local modules
 from imutils.perspective import four_point_transform
 
-from common import Timer
 from find_obj import init_feature, filter_matches, explore_match
 
 
@@ -179,7 +176,7 @@ if __name__ == '__main__':
     print('img1 - %d features, img2 - %d features' % (len(kp1), len(kp)))
 
 
-    def match_and_draw(kp2, desc2, img2,c):
+    def match_and_draw(kp2, desc2, img2, c):
         # with Timer('matching'):
         print('matching ')
         raw_matches = matcher.knnMatch(desc1, trainDescriptors=desc2, k=2)  # 2
@@ -200,31 +197,6 @@ if __name__ == '__main__':
         return 'finish'
 
 
-    def match_wrap(args):
-        # args = list(args)
-        match_and_draw(*args)
-
-
-    def calb():
-        print('pass')
-        pass
-
-
-    # pool = multiprocessing.Pool()
-    c = 0
-    for kp2, desc2, img2 in zip(kp, desc, img):
-        c = c + 1
-        my_list = [kp1.copy(), kp2, desc1.copy(), desc2, img2, c]
-        # p = multiprocessing.Process(target=match_and_draw, args=(kp1.copy(), kp2, desc1.copy(), desc2, img2, c))
-        # p.start()
-        # p.join()
-        # results = pool.apply_async(match_and_draw, args=(kp1.copy(), kp2, desc1.copy(), desc2, img2, c),callback=calb)
-        # results = pool.apply_async(match_and_draw, my_list)
-        # results.wait()
-    # nums = [1, 2, 3, 4, 5, 6, 7, 8]
     results = [pool.apply_async(match_and_draw, args=(kp2, desc2, img2, c)) for kp2, desc2, img2, c in
                zip(kp, desc, img, range(1, 111))]
     output = [p.get() for p in results]
-    # print(output)
-    # cv2.waitKey()
-    # cv2.destroyAllWindows()
